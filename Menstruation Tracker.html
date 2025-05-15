@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Menstrual Cycle Tracker</title>
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    /* Global */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      color: #333;
+      background-color: #FFFDE7;
+    }
+    .cards {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .card {
+      flex: 1 1 26%; margin: 6px; padding: 18px;
+      border: 2px solid #e91e63; border-radius: 8px;
+      background: #fafafa; aspect-ratio: 1/1;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      font-size: 1.25em;
+    }
+    .card label {
+      margin-bottom: 12px; font-weight: bold;
+    }
+
+    /* Flatpickr overrides */
+    .flatpickr-calendar {
+      background: #fff !important; border: none !important;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+    .flatpickr-months {
+      background: none !important; padding: 4px 0 !important;
+    }
+    .flatpickr-current-month {
+      font-size: 1em; color: #e91e63; font-weight: bold;
+      text-align: center;
+    }
+    .flatpickr-prev-month, .flatpickr-next-month {
+      color: #e91e63; /* keep default SVG icons */
+      cursor: pointer;
+    }
+    .flatpickr-weekdays {
+      background: none !important;
+    }
+    .flatpickr-weekday {
+      color: #555; font-weight: bold;
+    }
+    .flatpickr-day {
+      background: none; color: #333; border-radius: 0 !important;
+    }
+    .flatpickr-day:hover {
+      background: #fce4ec !important;
+    }
+    .flatpickr-day.selected {
+      background: #66bb6a !important; color: #fff !important;
+      border-radius: 50% !important;
+    }
+
+    /* Custom display */
+    .date-picker {
+      position: relative; cursor: pointer;
+    }
+    .date-picker input {
+      width: 130px; border: none; background: none;
+      font-size: 1.1em; color: #e91e63; padding-right: 8px;
+      text-align: left;
+    }
+    .date-picker input:focus { outline: none; }
+    .date-picker::after {
+      content: '📅'; position: absolute; right: -18px;
+      top: 50%; transform: translateY(-50%);
+      pointer-events: none; font-size: 1.1em;
+    }
+
+    /* Increment fields */
+    .inc-field {
+      display: flex; align-items: center; gap: 8px;
+      font-size: inherit;
+    }
+    .inc-field button {
+      width: 28px; height: 28px; border: none; background: none;
+      cursor: pointer; font-size: 1.2em; color: #e91e63;
+    }
+    .inc-field span.value,
+    .inc-field span.unit { color: #e91e63; }
+
+    /* Track button */
+    #track-btn {
+      display: block; margin: 0 auto 30px; padding: 12px 24px;
+      font-size: 1em; color: #fff; background-color: #e91e63;
+      border: none; border-radius: 5px; cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #track-btn:hover { background-color: #d81b60; }
+
+    /* Results */
+    #results { margin-top: 20px; }
+    .nav-cal {
+      display: flex; justify-content: flex-end;
+      align-items: center; margin-bottom: 8px;
+      font-size: 0.9em; color: #555;
+    }
+    .nav-cal span {
+      cursor: pointer; padding: 4px 8px;
+    }
+    .nav-cal span:hover {
+      background: #f0f0f0; border-radius: 4px;
+    }
+
+    .calendars {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+    }
+    .calendar {
+      flex: 1 1 26%; margin: 6px; background: #fff;
+      border: 1px solid #ddd; border-radius: 4px; overflow: hidden;
+    }
+    .calendar .month-name {
+      background: #e91e63; color: #fff;
+      text-align: center; height: 50px; line-height: 50px;
+      font-weight: bold;
+    }
+    .calendar table {
+      width: 100%; border-collapse: collapse;
+    }
+    .calendar thead { background: #ddd; }
+    .calendar th, .calendar td {
+      width: 14.28%; text-align: center;
+      padding: 0; height: 50px;
+    }
+    .calendar thead th {
+      font-weight: bold; color: #555;
+    }
+    .calendar tbody tr { border-bottom: 1px solid #ddd; }
+    .calendar td { position: relative; background: #fff; }
+    .day-number {
+      display: inline-block; width: 28px; height: 28px;
+      line-height: 28px; border-radius: 50%;
+      margin-top: 10px;
+    }
+    .period-phase .day-number { background: #ffcccb; }
+    .postperiod  .day-number { background: #ce93d8; }
+    .preperiod   .day-number { background: #FFEB3B; }
+    .ovulation   .day-number {
+      background: #66bb6a; color: #fff;
+    }
+
+    /* Key + Download */
+    .key {
+      margin-top: 12px; display: flex; flex-wrap: wrap;
+      gap: 16px; font-size: 0.9em;
+    }
+    .key-item {
+      display: inline-flex; align-items: center;
+    }
+    .key-color {
+      width: 16px; height: 16px; border-radius: 50%;
+      margin-right: 6px;
+    }
+    #download-pdf {
+      display: block; margin: 20px auto;
+      padding: 16px 32px; font-size: 1.1em;
+      background: #e91e63; color: #fff;
+      border: none; border-radius: 4px;
+      cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #download-pdf:hover { background: #d81b60; }
+
+    @media (max-width: 768px) {
+      .card, .calendar { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cards">
+    <div class="card">
+      <label>Date of Last Period</label>
+      <div class="date-picker">
+        <input id="last-period-picker" placeholder="Select date" readonly>
+      </div>
+    </div>
+    <div class="card">
+      <label>How long did it last?</label>
+      <div class="inc-field">
+        <span id="period-length" class="value">5</span><span class="unit">days</span>
+        <button id="period-dec">−</button><button id="period-inc">+</button>
+      </div>
+    </div>
+    <div class="card">
+      <label>Average Cycle Length</label>
+      <div class="inc-field">
+        <span id="cycle-length" class="value">28</span><span class="unit">days</span>
+        <button id="cycle-dec">−</button><button id="cycle-inc">+</button>
+      </div>
+    </div>
+  </div>
+
+  <button id="track-btn">Track Now</button>
+  <div id="results"></div>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script>
+    const dayMs = 24*60*60*1000;
+    let lastPeriodDate = null, fp;
+    let globalPeriodLength = 5, globalCycleLength = 28;
+
+flatpickr("#last-period-picker", {
+  dateFormat: "F j, Y",
+  defaultDate: new Date(),
+  showMonths: 1,
+  disableMobile: true,
+  static: true,
+onReady: (selectedDates, dateStr, cal) => {
+  const today = selectedDates[0] || new Date();
+  lastPeriodDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  cal.setDate(today, true);
+
+  // Simplify weekday headers
+  cal.weekdayContainer.querySelectorAll('.flatpickr-weekday').forEach((el, i) => {
+    el.textContent = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][i];
+  });
+
+  const currentMonthEl = cal.calendarContainer.querySelector('.flatpickr-current-month');
+
+ 
+  const monthSelect = currentMonthEl.querySelector('.cur-month');
+  const monthIndex = monthSelect.selectedIndex;
+  const monthName = monthSelect.options[monthIndex].textContent;
+
+  const monthSpan = document.createElement('span');
+  monthSpan.textContent = monthName;
+  monthSpan.style.color = '#e91e63';
+  monthSpan.style.fontWeight = 'bold';
+  monthSpan.style.fontSize = '1em';
+  monthSelect.replaceWith(monthSpan);
+
+
+  const yearWrapper = currentMonthEl.querySelector('.numInputWrapper');
+  if (yearWrapper) yearWrapper.remove();
+},
+
+
+
+
+  onChange: (sd) => {
+    lastPeriodDate = new Date(sd[0].getFullYear(), sd[0].getMonth(), sd[0].getDate());
+  }
+});
+
+
+    document.getElementById('last-period-picker').addEventListener('click', ()=> fp.open());
+
+    function setupIncDec(dec, inc, span, min) {
+      document.getElementById(dec).onclick = ()=> {
+        let v = +span.textContent; if(v>min) span.textContent = v-1;
+      };
+      document.getElementById(inc).onclick = ()=> {
+        let v = +span.textContent; span.textContent = v+1;
+      };
+    }
+    setupIncDec('period-dec','period-inc',document.getElementById('period-length'),1);
+    setupIncDec('cycle-dec','cycle-inc',document.getElementById('cycle-length'),21);
+
+    function addDays(d,n){ let x=new Date(d.valueOf()); x.setDate(x.getDate()+n); return x; }
+    function formatOrd(d){
+      const day=d.getDate(), s=['th','st','nd','rd'][
+        (day%100>10&&day%100<20)?0:Math.min(day%10,3)
+      ];
+      return d.toLocaleDateString(undefined,{month:'long'})+' '+day+s;
+    }
+
+    document.getElementById('track-btn').onclick = ()=>{
+      if(!lastPeriodDate){
+        lastPeriodDate = new Date();
+        fp.setDate(lastPeriodDate);
+      }
+
+      globalPeriodLength = +document.getElementById('period-length').textContent;
+      globalCycleLength = +document.getElementById('cycle-length').textContent;
+      startOffset = 0;
+      renderTracker();
+    };
+
+    let startOffset = 0;
+    function renderTracker(){
+      const rs = document.getElementById('results');
+      rs.innerHTML = '';
+      const title = document.createElement('h3');
+      title.textContent = 'Your Tracker';
+      rs.appendChild(title);
+
+      const cont = document.createElement('div');
+      cont.id = 'tracker-content';
+
+      const nav = document.createElement('div'); nav.className='nav-cal';
+      const prev = document.createElement('span'); prev.textContent='< Previous 3 Months';
+      prev.onclick = ()=>{ startOffset-=3; renderTracker(); };
+      const next = document.createElement('span'); next.textContent='Next 3 Months >';
+      next.onclick = ()=>{ startOffset+=3; renderTracker(); };
+      nav.appendChild(prev); nav.appendChild(document.createTextNode(' | ')); nav.appendChild(next);
+      cont.appendChild(nav);
+
+      const calCon = document.createElement('div'); calCon.className='calendars';
+      for(let i=0;i<3;i++){
+        const mDate = new Date(lastPeriodDate.getFullYear(),
+          lastPeriodDate.getMonth()+startOffset+i,1);
+        calCon.appendChild(makeCal(mDate));
+      }
+      cont.appendChild(calCon);
+
+      const key = document.createElement('div'); key.className='key';
+      key.innerHTML = `
+        <span class="key-item"><span class="key-color" style="background:#FFEB3B"></span> Pre-Period</span>
+        <span class="key-item"><span class="key-color" style="background:#ffcccb"></span> Period</span>
+        <span class="key-item"><span class="key-color" style="background:#ce93d8"></span> Post-Period</span>
+        <span class="key-item"><span class="key-color" style="background:#66bb6a"></span> Peak Ovulation</span>
+      `;
+      cont.appendChild(key);
+
+      rs.appendChild(cont);
+
+      const btn = document.createElement('button');
+      btn.id='download-pdf'; btn.textContent='Download PDF';
+      rs.appendChild(btn);
+      btn.onclick = downloadPDF;
+    }
+
+    function makeCal(monthDate){
+      const yr=monthDate.getFullYear(), mo=monthDate.getMonth();
+      const first=new Date(yr,mo,1), start=first.getDay();
+      const dim=new Date(yr,mo+1,0).getDate();
+      const cal=document.createElement('div'); cal.className='calendar';
+      const mh=document.createElement('div'); mh.className='month-name';
+      mh.textContent = monthDate.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+      cal.appendChild(mh);
+      const table=document.createElement('table');
+      const thead=document.createElement('thead'), hr=document.createElement('tr');
+      ['S','M','T','W','T','F','S'].forEach(ch=>{
+        const th=document.createElement('th'); th.textContent=ch; hr.appendChild(th);
+      });
+      thead.appendChild(hr); table.appendChild(thead);
+      const tbody=document.createElement('tbody');
+      let row=document.createElement('tr');
+      for(let i=0;i<start;i++) row.appendChild(document.createElement('td'));
+      for(let d=1;d<=dim;d++){
+        if(row.children.length===7){ tbody.appendChild(row); row=document.createElement('tr'); }
+        const cell=document.createElement('td'), cd=new Date(yr,mo,d);
+        const sp=document.createElement('span'); sp.className='day-number'; sp.textContent=d;
+        cell.appendChild(sp);
+        // classify cycle days across infinite cycles
+        const diff = (cd - lastPeriodDate) / (globalCycleLength*dayMs);
+        const k0 = Math.round(diff);
+        for(let k=k0-1;k<=k0+1;k++){
+          const ps = addDays(lastPeriodDate, k*globalCycleLength);
+          const pe = addDays(ps, globalPeriodLength-1);
+          if(cd >= ps && cd <= pe){ cell.classList.add('period-phase'); break; }
+          if(cd.toDateString() === addDays(ps, globalPeriodLength).toDateString() ||
+             cd.toDateString() === addDays(ps, globalPeriodLength+1).toDateString()){
+            cell.classList.add('postperiod'); break;
+          }
+          if(cd.toDateString() === addDays(ps, -1).toDateString() ||
+             cd.toDateString() === addDays(ps, -2).toDateString()){
+            cell.classList.add('preperiod'); break;
+          }
+          for(let o=10;o<=14;o++){
+            if(cd.toDateString() === addDays(ps, -o).toDateString()){
+              cell.classList.add('ovulation'); break;
+            }
+          }
+        }
+        row.appendChild(cell);
+      }
+      while(row.children.length<7) row.appendChild(document.createElement('td'));
+      tbody.appendChild(row); table.appendChild(tbody); cal.appendChild(table);
+      return cal;
+    }
+
+    async function downloadPDF(){
+      const { jsPDF } = window.jspdf;
+      const content = document.getElementById('tracker-content');
+      const canvas = await html2canvas(content, { scale:2 });
+      const img = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p','pt','a4');
+      const w = pdf.internal.pageSize.getWidth();
+      const h = pdf.internal.pageSize.getHeight();
+      const props = pdf.getImageProperties(img);
+      const imgH = w * props.height / props.width;
+      const y = (h - imgH)/2;
+      pdf.addImage(img,'PNG',0,y,w,imgH);
+      pdf.save('tracker.pdf');
+    }
+  </script>
+
+</body>
+</html>
